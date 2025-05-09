@@ -1,6 +1,7 @@
 import { Link } from 'wouter';
 import { calculateDaysLeft } from '@/lib/contract';
 import { CampaignMetadata } from '@shared/types';
+import VerificationBadge from './VerificationBadge';
 
 interface CampaignCardProps {
   campaign: CampaignMetadata;
@@ -13,6 +14,11 @@ const CampaignCard = ({ campaign }: CampaignCardProps) => {
   const progress = (parseFloat(campaign.amountCollected) / parseFloat(campaign.target)) * 100;
   const formattedProgress = Math.min(100, Math.max(0, Math.round(progress)));
   
+  // Handle campaign verification status
+  const requiresVerification = campaign.requiresVerification ?? true; // Default to true if not specified
+  const isVerified = campaign.creatorVerified ?? false; // Default to false if not specified
+  const verificationMethod = campaign.verificationMethod || null;
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-campaign">
       <img 
@@ -22,13 +28,22 @@ const CampaignCard = ({ campaign }: CampaignCardProps) => {
       />
       
       <div className="p-5">
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-center mb-2">
           <span className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full">
             {campaign.category}
           </span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
             {daysLeft > 0 ? `${daysLeft} days left` : 'Ended'}
           </span>
+        </div>
+        
+        <div className="mb-2">
+          <VerificationBadge 
+            isVerified={isVerified}
+            requiresVerification={requiresVerification}
+            method={verificationMethod}
+            className="mt-1"
+          />
         </div>
         
         <h3 className="text-lg font-bold mb-2">{campaign.title}</h3>

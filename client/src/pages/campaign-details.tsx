@@ -3,12 +3,15 @@ import { useLocation } from 'wouter';
 import { useThirdweb } from '@/context/ThirdwebContext';
 import { getCampaign, calculateDaysLeft, donateToCampaign, getDonators } from '@/lib/contract';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import CountBox from '@/components/CountBox';
 import Loader from '@/components/Loader';
 import { CampaignMetadata } from '@shared/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
+import VerificationBadge from '@/components/VerificationBadge';
+import VerifyUserDialog from '@/components/VerifyUserDialog';
 
 const CampaignDetails = () => {
   const [campaign, setCampaign] = useState<CampaignMetadata | null>(null);

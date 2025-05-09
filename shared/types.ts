@@ -19,6 +19,9 @@ export interface CampaignMetadata {
   donators: string[]; // List of donator addresses
   donations: string[]; // List of donation amounts
   category: string;
+  requiresVerification?: boolean; // Whether the campaign requires creator verification
+  creatorVerified?: boolean; // Whether the creator is verified
+  verificationMethod?: string; // BrightID or PolygonID
 }
 
 export interface DonationData {

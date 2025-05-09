@@ -40,6 +40,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // User verification with BrightID
+  app.post("/api/users/:userId/verify/brightid", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { proof } = req.body;
+      
+      if (!proof) {
+        return res.status(400).json({ message: "Verification proof is required" });
+      }
+      
+      // In a real implementation, we would validate the BrightID proof here
+      // by making an API call to the BrightID verification endpoint
+      
+      const user = await storage.verifyUser(userId, "BrightID", proof);
+      
+      // Update any existing campaigns by this user
+      const campaigns = await storage.getCampaignsByOwner(user.address);
+      for (const campaign of campaigns) {
+        await storage.updateCampaignVerificationStatus(campaign.id, true);
+      }
+      
+      res.json({ 
+        success: true, 
+        user,
+        message: "User verified with BrightID successfully" 
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // User verification with Polygon ID
+  app.post("/api/users/:userId/verify/polygonid", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const { proof, credentialType } = req.body;
+      
+      if (!proof) {
+        return res.status(400).json({ message: "Verification proof is required" });
+      }
+      
+      if (!credentialType) {
+        return res.status(400).json({ message: "Credential type is required" });
+      }
+      
+      // In a real implementation, we would validate the Polygon ID proof here
+      // by verifying the zero-knowledge proof against the schema
+      
+      const user = await storage.verifyUser(userId, "PolygonID", proof);
+      
+      // Update any existing campaigns by this user
+      const campaigns = await storage.getCampaignsByOwner(user.address);
+      for (const campaign of campaigns) {
+        await storage.updateCampaignVerificationStatus(campaign.id, true);
+      }
+      
+      res.json({ 
+        success: true, 
+        user,
+        message: "User verified with Polygon ID successfully" 
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
   // Campaign routes
   app.get("/api/campaigns", async (_req: Request, res: Response) => {
     try {
@@ -99,6 +165,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateCampaignAmountCollected(parseInt(req.params.id), amount);
       res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Check campaign verification status
+  app.get("/api/campaigns/:id/verification", async (req: Request, res: Response) => {
+    try {
+      const campaign = await storage.getCampaign(parseInt(req.params.id));
+      if (!campaign) {
+        return res.status(404).json({ message: "Campaign not found" });
+      }
+      
+      // Check if the campaign creator is verified
+      const user = await storage.getUserByAddress(campaign.owner);
+      const isVerified = user ? user.isVerified : false;
+      
+      res.json({
+        requiresVerification: campaign.requiresVerification,
+        creatorVerified: campaign.creatorVerified || isVerified,
+        verificationMethod: user ? user.verificationMethod : null
+      });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Update campaign verification requirement
+  app.patch("/api/campaigns/:id/verification", async (req: Request, res: Response) => {
+    try {
+      const { verified } = req.body;
+      
+      if (verified === undefined) {
+        return res.status(400).json({ message: "Verification status is required" });
+      }
+      
+      await storage.updateCampaignVerificationStatus(parseInt(req.params.id), verified);
+      const campaign = await storage.getCampaign(parseInt(req.params.id));
+      
+      res.json({ 
+        success: true, 
+        campaign,
+        message: verified ? "Campaign creator verified" : "Campaign creator verification removed" 
+      });
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
