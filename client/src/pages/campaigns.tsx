@@ -8,6 +8,7 @@ import CampaignCard from '@/components/CampaignCard';
 import Loader from '@/components/Loader';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
 import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/lib/queryClient';
 
 const Campaigns = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -27,9 +28,46 @@ const Campaigns = () => {
     const fetchCampaigns = async () => {
       try {
         setIsLoading(true);
-        const allCampaigns = await getCampaigns();
-        setCampaigns(allCampaigns);
-        setFilteredCampaigns(allCampaigns);
+        
+        // Try to fetch campaigns from backend API first
+        try {
+          const backendCampaigns = await apiRequest('/api/campaigns', 'GET');
+          if (backendCampaigns && backendCampaigns.length > 0) {
+            // Convert to CampaignMetadata format
+            const formattedCampaigns: CampaignMetadata[] = backendCampaigns.map((campaign: any) => ({
+              pId: campaign.id,
+              owner: campaign.owner,
+              title: campaign.title,
+              description: campaign.description,
+              target: campaign.target.toString(),
+              deadline: new Date(campaign.deadline).toISOString(),
+              amountCollected: campaign.amountCollected?.toString() || '0',
+              image: campaign.image,
+              category: campaign.category,
+              requiresVerification: campaign.requiresVerification || false,
+              creatorVerified: campaign.creatorVerified || false,
+              verificationMethod: campaign.verificationMethod || null,
+              donators: [],
+              donations: []
+            }));
+            
+            setCampaigns(formattedCampaigns);
+            setFilteredCampaigns(formattedCampaigns);
+            return;
+          }
+        } catch (backendError) {
+          console.error('Failed to fetch campaigns from backend:', backendError);
+        }
+        
+        // Fallback to smart contract if backend fails
+        try {
+          const allCampaigns = await getCampaigns();
+          setCampaigns(allCampaigns);
+          setFilteredCampaigns(allCampaigns);
+        } catch (contractError) {
+          console.error('Failed to fetch campaigns from contract:', contractError);
+          throw contractError; // Re-throw to be caught by outer catch
+        }
       } catch (error) {
         console.error('Failed to fetch campaigns:', error);
         toast({
@@ -42,14 +80,8 @@ const Campaigns = () => {
       }
     };
 
-    if (address) {
-      fetchCampaigns();
-    } else {
-      // Show some dummy campaigns if wallet not connected
-      setIsLoading(false);
-      setCampaigns([]);
-      setFilteredCampaigns([]);
-    }
+    // Always fetch campaigns, even if wallet is not connected
+    fetchCampaigns();
   }, [address]);
 
   useEffect(() => {
