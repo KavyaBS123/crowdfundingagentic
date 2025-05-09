@@ -1,0 +1,47 @@
+export interface CampaignFormData {
+  title: string;
+  description: string;
+  target: string;
+  deadline: Date;
+  image: string;
+  category: string;
+}
+
+export interface CampaignMetadata {
+  title: string;
+  description: string;
+  target: string; // Ethers in string format
+  deadline: string; // Date in string format
+  image: string;
+  owner: string; // Address of the campaign creator
+  pId: number; // Campaign ID in smart contract
+  amountCollected: string; // Ethers in string format
+  donators: string[]; // List of donator addresses
+  donations: string[]; // List of donation amounts
+  category: string;
+}
+
+export interface DonationData {
+  amount: string;
+  campaignId: number;
+}
+
+export interface GptAssistantResponse {
+  campaignPitch?: string;
+  goalEstimate?: {
+    min: string;
+    max: string;
+    recommendedAmount: string;
+    rationale: string;
+  };
+  milestones?: {
+    name: string;
+    description: string;
+    timeframe: string;
+  }[];
+}
+
+export interface WalletInfo {
+  address: string;
+  balance: string;
+}
