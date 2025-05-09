@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useThirdweb } from '@/context/ThirdwebContext';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,8 @@ import { categories } from '@/constants';
 import { getPitchSuggestion, getFundingGoalEstimation, getMilestoneSuggestions } from '@/lib/openai';
 import GptAssistant from '@/components/GptAssistant';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
+import VerifyUserDialog from '@/components/VerifyUserDialog';
+import { apiRequest } from '@/lib/queryClient';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -35,6 +37,9 @@ const CreateCampaign = () => {
   const [isGptHelping, setIsGptHelping] = useState(false);
   const [isGptAssistantOpen, setIsGptAssistantOpen] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [userVerified, setUserVerified] = useState(false);
   
   const { address, connect } = useThirdweb();
   const { toast } = useToast();
@@ -52,6 +57,50 @@ const CreateCampaign = () => {
     },
   });
 
+  // Check if user exists and get verification status
+  useEffect(() => {
+    const checkUser = async () => {
+      if (!address) return;
+      
+      try {
+        const response = await apiRequest(`/api/users/address/${address}`, 'GET');
+        if (response && response.id) {
+          setUserId(response.id);
+          setUserVerified(!!response.isVerified);
+        } else {
+          // User doesn't exist, create one
+          try {
+            const newUser = await apiRequest('/api/users', 'POST', {
+              username: `user_${address.substring(2, 8)}`,
+              address,
+              avatar: `https://avatars.dicebear.com/api/identicon/${address}.svg`,
+            });
+            if (newUser && newUser.id) {
+              setUserId(newUser.id);
+              setUserVerified(!!newUser.isVerified);
+            }
+          } catch (createError) {
+            console.error('Error creating user:', createError);
+          }
+        }
+      } catch (error) {
+        // User not found, but that's okay
+        console.log('User not found or other error:', error);
+      }
+    };
+    
+    checkUser();
+  }, [address]);
+
+  const handleVerificationComplete = () => {
+    setUserVerified(true);
+    setIsVerifyDialogOpen(false);
+    toast({
+      title: 'Verification Successful',
+      description: 'Your identity has been verified. You can now create campaigns.',
+    });
+  };
+
   const handleConnectWallet = () => {
     setIsWalletModalOpen(true);
   };
@@ -63,24 +112,13 @@ const CreateCampaign = () => {
     }
 
     // Check if user is verified
-    try {
-      const user = await fetch(`/api/users/address/${address}`).then(res => res.json());
-      if (!user?.isVerified) {
-        toast({
-          title: "Verification Required",
-          description: "Please verify your identity before creating a campaign",
-          variant: "destructive",
-        });
-        setIsVerifyDialogOpen(true);
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking user verification:', error);
+    if (!userVerified) {
       toast({
-        title: "Verification Error",
-        description: "Unable to verify user status. Please try again.",
+        title: "Verification Required",
+        description: "Please verify your identity before creating a campaign",
         variant: "destructive",
       });
+      setIsVerifyDialogOpen(true);
       return;
     }
     
@@ -89,6 +127,25 @@ const CreateCampaign = () => {
     try {
       // Create campaign on blockchain
       await createCampaign(values, address);
+      
+      // Also create in our backend for verification data
+      try {
+        await apiRequest('/api/campaigns', 'POST', {
+          title: values.title,
+          description: values.description,
+          target: values.target,
+          deadline: values.deadline.toISOString(),
+          image: values.image,
+          category: values.category,
+          owner: address,
+          requiresVerification: true,
+          creatorVerified: true,
+          verificationMethod: "BrightID", // Default to BrightID for simplicity
+        });
+      } catch (backendError) {
+        console.error('Error creating campaign in backend:', backendError);
+        // Continue even if backend creation fails
+      }
       
       toast({
         title: 'Success!',
@@ -363,6 +420,17 @@ const CreateCampaign = () => {
         onClose={() => setIsWalletModalOpen(false)} 
         onConnect={connect}
       />
+
+      {/* Verification Dialog */}
+      {userId && (
+        <VerifyUserDialog
+          isOpen={isVerifyDialogOpen}
+          onClose={() => setIsVerifyDialogOpen(false)}
+          userId={userId}
+          userAddress={address || ''}
+          onVerificationComplete={handleVerificationComplete}
+        />
+      )}
     </div>
   );
 };
