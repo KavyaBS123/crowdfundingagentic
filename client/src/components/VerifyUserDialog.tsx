@@ -35,8 +35,22 @@ const VerifyUserDialog = ({ isOpen, onClose, userId, userAddress, onVerification
 
     setIsLoading(true);
     try {
+      // Connect to BrightID verification endpoint
+      const brightIdResponse = await fetch(`https://app.brightid.org/node/v5/verifications/Crowdfund3r/${userAddress}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const brightIdData = await brightIdResponse.json();
+
+      if (!brightIdData.data || !brightIdData.data.unique) {
+        throw new Error("BrightID verification failed. Please make sure you are verified on BrightID.");
+      }
+
       const response = await apiRequest(`/api/users/${userId}/verify/brightid`, "POST", { 
-        proof: brightIdProof 
+        proof: brightIdData.data.contextId 
       });
 
       if (response && response.success) {
@@ -170,16 +184,6 @@ const VerifyUserDialog = ({ isOpen, onClose, userId, userAddress, onVerification
                   </Button>
                 </div>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="brightid-proof">Verification Proof</Label>
-              <Input
-                id="brightid-proof"
-                placeholder="Enter the verification proof from BrightID"
-                value={brightIdProof}
-                onChange={(e) => setBrightIdProof(e.target.value)}
-              />
             </div>
 
             <DialogFooter>

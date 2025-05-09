@@ -111,6 +111,36 @@ const CreateCampaign = () => {
       return;
     }
 
+    // Check BrightID verification first
+    try {
+      const brightIdResponse = await fetch(`https://app.brightid.org/node/v5/verifications/Crowdfund3r/${address}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const brightIdData = await brightIdResponse.json();
+      
+      if (!brightIdData.data || !brightIdData.data.unique) {
+        toast({
+          title: "Verification Required",
+          description: "You must be verified on BrightID to create a campaign",
+          variant: "destructive",
+        });
+        setIsVerifyDialogOpen(true);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking BrightID verification:', error);
+      toast({
+        title: "Verification Error",
+        description: "Failed to verify BrightID status. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if user is verified
     if (!userVerified) {
       toast({
