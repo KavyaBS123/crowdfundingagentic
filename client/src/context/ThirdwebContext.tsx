@@ -3,6 +3,14 @@ import { useToast } from '@/hooks/use-toast';
 import { checkIfWalletIsConnected, connectWallet } from '@/lib/contract';
 import { WalletInfo } from '@shared/types';
 import { ethers } from 'ethers';
+import { apiRequest } from '@/lib/queryClient';
+
+// Add ethers WindowProvider interface to global Window interface
+declare global {
+  interface Window {
+    ethereum: any;
+  }
+}
 
 interface ThirdwebContextType {
   address: string | null;
@@ -34,6 +42,26 @@ export const ThirdwebProvider = ({ children }: ThirdwebProviderProps) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Register user with the backend
+  const registerUser = async (address: string) => {
+    try {
+      // First check if user exists
+      const existingUser = await apiRequest(`/api/users/address/${address}`, "GET");
+      
+      // If user doesn't exist, create a new user
+      if (!existingUser) {
+        const username = `user_${address.substring(2, 8)}`;
+        await apiRequest('/api/users', "POST", {
+          username,
+          address,
+        });
+        console.log('User registered successfully');
+      }
+    } catch (error) {
+      console.error('Error registering user:', error);
+    }
+  };
+
   const updateWalletInfo = async (address: string) => {
     if (address) {
       try {
@@ -46,6 +74,9 @@ export const ThirdwebProvider = ({ children }: ThirdwebProviderProps) => {
           address,
           balance: formattedBalance,
         });
+        
+        // Register user if needed
+        await registerUser(address);
       } catch (error) {
         console.error('Error updating wallet info:', error);
       }
