@@ -35,12 +35,11 @@ const VerifyUserDialog = ({ isOpen, onClose, userId, userAddress, onVerification
 
     setIsLoading(true);
     try {
-      const response = await apiRequest(`/api/users/${userId}/verify/brightid`, {
-        method: "POST",
-        body: JSON.stringify({ proof: brightIdProof }),
+      const response = await apiRequest(`/api/users/${userId}/verify/brightid`, "POST", { 
+        proof: brightIdProof 
       });
 
-      if (response.success) {
+      if (response && response.success) {
         toast({
           title: "Verification Successful",
           description: "Your identity has been verified with BrightID",
@@ -71,15 +70,12 @@ const VerifyUserDialog = ({ isOpen, onClose, userId, userAddress, onVerification
 
     setIsLoading(true);
     try {
-      const response = await apiRequest(`/api/users/${userId}/verify/polygonid`, {
-        method: "POST",
-        body: JSON.stringify({ 
-          proof: polygonIdProof,
-          credentialType: polygonIdCredential
-        }),
+      const response = await apiRequest(`/api/users/${userId}/verify/polygonid`, "POST", { 
+        proof: polygonIdProof,
+        credentialType: polygonIdCredential
       });
 
-      if (response.success) {
+      if (response && response.success) {
         toast({
           title: "Verification Successful",
           description: "Your identity has been verified with Polygon ID",

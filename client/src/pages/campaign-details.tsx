@@ -20,6 +20,13 @@ const CampaignDetails = () => {
   const [donators, setDonators] = useState<{ address: string; donation: string }[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState({
+    requiresVerification: true,
+    creatorVerified: false,
+    verificationMethod: null as string | null
+  });
+  const [userId, setUserId] = useState<number | null>(null);
   
   const { address, connect } = useThirdweb();
   const { toast } = useToast();
@@ -27,6 +34,82 @@ const CampaignDetails = () => {
   
   const pId = parseInt(location.split('/').pop() || '0');
   
+  // Function to fetch user by wallet address
+  const fetchUserByAddress = async (walletAddress: string) => {
+    try {
+      const response = await apiRequest(`/api/users/address/${walletAddress}`, "GET");
+      return response;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
+  };
+
+  // Function to fetch campaign verification status
+  const fetchVerificationStatus = async (campaignId: number) => {
+    try {
+      const response = await apiRequest(`/api/campaigns/${campaignId}/verification`, "GET");
+      if (response) {
+        setVerificationStatus({
+          requiresVerification: response.requiresVerification || false,
+          creatorVerified: response.creatorVerified || false,
+          verificationMethod: response.verificationMethod || null
+        });
+      }
+      return response;
+    } catch (error) {
+      console.error('Error fetching verification status:', error);
+      return null;
+    }
+  };
+
+  const handleVerification = async () => {
+    if (!address || !campaign) return;
+    
+    try {
+      // Check if user exists
+      const user = await fetchUserByAddress(address);
+      
+      if (user) {
+        setUserId(user.id);
+        
+        // If user is the campaign owner, open verification dialog
+        if (user.address.toLowerCase() === campaign.owner.toLowerCase()) {
+          setIsVerifyDialogOpen(true);
+        } else {
+          toast({
+            title: 'Not authorized',
+            description: 'Only the campaign creator can verify this campaign.',
+            variant: 'destructive',
+          });
+        }
+      } else {
+        toast({
+          title: 'User not found',
+          description: 'Your wallet address is not registered. Please register first.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Error handling verification:', error);
+      toast({
+        title: 'Verification error',
+        description: 'Failed to start verification process. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleVerificationComplete = async () => {
+    // Refresh verification status after completion
+    await fetchVerificationStatus(pId);
+    
+    toast({
+      title: 'Verification complete',
+      description: 'Your campaign creator identity has been verified.',
+    });
+  };
+
   useEffect(() => {
     const fetchCampaign = async () => {
       try {
@@ -43,6 +126,9 @@ const CampaignDetails = () => {
         }));
         
         setDonators(formattedDonators);
+        
+        // Fetch verification status
+        await fetchVerificationStatus(pId);
       } catch (error) {
         console.error('Error fetching campaign details:', error);
         toast({
@@ -203,14 +289,35 @@ const CampaignDetails = () => {
               
               <div className="mb-8">
                 <h2 className="text-xl font-bold mb-4">Creator</h2>
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                    <i className="ri-user-3-line text-gray-600 dark:text-gray-300"></i>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <i className="ri-user-3-line text-gray-600 dark:text-gray-300"></i>
+                    </div>
+                    <div className="ml-3">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{campaign.owner.substring(0, 6)}...{campaign.owner.substring(campaign.owner.length - 4)}</p>
+                        <VerificationBadge 
+                          isVerified={verificationStatus.creatorVerified}
+                          requiresVerification={verificationStatus.requiresVerification}
+                          method={verificationStatus.verificationMethod}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Campaign Creator</p>
+                    </div>
                   </div>
-                  <div className="ml-3">
-                    <p className="font-medium">{campaign.owner.substring(0, 6)}...{campaign.owner.substring(campaign.owner.length - 4)}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Campaign Creator</p>
-                  </div>
+                  
+                  {/* Show verify button if creator is the current user and not verified */}
+                  {campaign.owner.toLowerCase() === address?.toLowerCase() && !verificationStatus.creatorVerified && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleVerification}
+                      className="text-xs"
+                    >
+                      Verify Identity
+                    </Button>
+                  )}
                 </div>
               </div>
               
@@ -306,6 +413,16 @@ const CampaignDetails = () => {
         onClose={() => setIsWalletModalOpen(false)} 
         onConnect={connect}
       />
+      
+      {userId && (
+        <VerifyUserDialog
+          isOpen={isVerifyDialogOpen}
+          onClose={() => setIsVerifyDialogOpen(false)}
+          userId={userId}
+          userAddress={address || ''}
+          onVerificationComplete={handleVerificationComplete}
+        />
+      )}
     </div>
   );
 };
