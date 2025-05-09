@@ -116,19 +116,78 @@ const CampaignDetails = () => {
         if (isNaN(pId)) return;
         
         setIsLoading(true);
-        const campaignData = await getCampaign(pId);
-        setCampaign(campaignData);
         
-        const donatorsData = await getDonators(pId);
-        const formattedDonators = donatorsData.donators.map((donator, i) => ({
-          address: donator,
-          donation: donatorsData.donations[i]
-        }));
+        // Try to fetch campaign from backend API first
+        try {
+          const backendCampaign = await apiRequest(`/api/campaigns/${pId}`, 'GET');
+          if (backendCampaign) {
+            // Convert to CampaignMetadata format
+            const formattedCampaign: CampaignMetadata = {
+              pId: backendCampaign.id,
+              owner: backendCampaign.owner,
+              title: backendCampaign.title,
+              description: backendCampaign.description,
+              target: backendCampaign.target.toString(),
+              deadline: new Date(backendCampaign.deadline).toISOString(),
+              amountCollected: backendCampaign.amountCollected?.toString() || '0',
+              image: backendCampaign.image,
+              category: backendCampaign.category,
+              requiresVerification: backendCampaign.requiresVerification || false,
+              creatorVerified: backendCampaign.creatorVerified || false,
+              verificationMethod: backendCampaign.verificationMethod || null,
+              donators: [],
+              donations: []
+            };
+            
+            setCampaign(formattedCampaign);
+            
+            // Set verification status from backend data
+            setVerificationStatus({
+              requiresVerification: backendCampaign.requiresVerification || false,
+              creatorVerified: backendCampaign.creatorVerified || false,
+              verificationMethod: backendCampaign.verificationMethod || null
+            });
+            
+            // Try to fetch donation data if available
+            try {
+              const donationsData = await apiRequest(`/api/donations/${pId}`, 'GET');
+              if (donationsData && donationsData.length > 0) {
+                const formattedDonators = donationsData.map((donation: any) => ({
+                  address: donation.donorAddress,
+                  donation: donation.amount.toString()
+                }));
+                setDonators(formattedDonators);
+              }
+            } catch (donationError) {
+              console.error('Error fetching donations from backend:', donationError);
+              // If we can't get donations from backend, still continue
+            }
+            
+            return; // Exit early if we got the campaign from backend
+          }
+        } catch (backendError) {
+          console.error('Error fetching campaign from backend:', backendError);
+        }
         
-        setDonators(formattedDonators);
-        
-        // Fetch verification status
-        await fetchVerificationStatus(pId);
+        // Fallback to smart contract if backend fails
+        try {
+          const campaignData = await getCampaign(pId);
+          setCampaign(campaignData);
+          
+          const donatorsData = await getDonators(pId);
+          const formattedDonators = donatorsData.donators.map((donator, i) => ({
+            address: donator,
+            donation: donatorsData.donations[i]
+          }));
+          
+          setDonators(formattedDonators);
+          
+          // Fetch verification status
+          await fetchVerificationStatus(pId);
+        } catch (contractError) {
+          console.error('Error fetching campaign from contract:', contractError);
+          throw contractError; // Re-throw to be caught by outer catch
+        }
       } catch (error) {
         console.error('Error fetching campaign details:', error);
         toast({
@@ -141,12 +200,9 @@ const CampaignDetails = () => {
       }
     };
 
-    if (address) {
-      fetchCampaign();
-    } else {
-      setIsLoading(false);
-    }
-  }, [pId, address]);
+    // Always fetch campaign, even if wallet is not connected
+    fetchCampaign();
+  }, [pId]);
 
   const handleDonate = async () => {
     if (!address) {

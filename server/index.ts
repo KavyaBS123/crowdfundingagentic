@@ -19,7 +19,11 @@ async function addSampleData() {
           deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
           image: "https://images.unsplash.com/photo-1509390144018-eeef46f70b8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1738&q=80",
           category: "Environment",
-          pId: 0
+          pId: 0,
+          requiresVerification: true,
+          creatorVerified: true,
+          verificationMethod: "BrightID",
+          amountCollected: "2.3"
         },
         {
           title: "Decentralized Education Platform",
