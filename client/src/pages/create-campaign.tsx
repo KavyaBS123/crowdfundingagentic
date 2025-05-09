@@ -61,6 +61,28 @@ const CreateCampaign = () => {
       handleConnectWallet();
       return;
     }
+
+    // Check if user is verified
+    try {
+      const user = await fetch(`/api/users/address/${address}`).then(res => res.json());
+      if (!user?.isVerified) {
+        toast({
+          title: "Verification Required",
+          description: "Please verify your identity before creating a campaign",
+          variant: "destructive",
+        });
+        setIsVerifyDialogOpen(true);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking user verification:', error);
+      toast({
+        title: "Verification Error",
+        description: "Unable to verify user status. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsSubmitting(true);
     
