@@ -11,6 +11,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByAddress(address: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  verifyUser(userId: number, method: string, proof: string): Promise<User>;
   
   // Campaign operations
   getCampaigns(): Promise<Campaign[]>;
@@ -19,6 +20,7 @@ export interface IStorage {
   getCampaignsByOwner(owner: string): Promise<Campaign[]>;
   createCampaign(campaign: InsertCampaign): Promise<Campaign>;
   updateCampaignAmountCollected(id: number, amount: number): Promise<void>;
+  updateCampaignVerificationStatus(id: number, verified: boolean): Promise<void>;
   
   // Donation operations
   getDonations(campaignId: number): Promise<Donation[]>;
@@ -71,9 +73,43 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.currentUserId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      isVerified: false,
+      verificationMethod: null,
+      verificationProof: null,
+      verificationTimestamp: null
+    };
     this.users.set(id, user);
     return user;
+  }
+  
+  async verifyUser(userId: number, method: string, proof: string): Promise<User> {
+    const user = this.users.get(userId);
+    if (!user) throw new Error("User not found");
+    
+    const updatedUser: User = {
+      ...user,
+      isVerified: true,
+      verificationMethod: method,
+      verificationProof: proof,
+      verificationTimestamp: new Date()
+    };
+    
+    this.users.set(userId, updatedUser);
+    
+    // Also update any campaigns owned by this user
+    Array.from(this.campaigns.values())
+      .filter(campaign => campaign.owner === user.address)
+      .forEach(campaign => {
+        this.campaigns.set(campaign.id, {
+          ...campaign,
+          creatorVerified: true
+        });
+      });
+    
+    return updatedUser;
   }
   
   // Campaign operations
@@ -102,11 +138,24 @@ export class MemStorage implements IStorage {
     const amountCollected = "0";
     const createdAt = new Date();
     
+    // Check if user is verified
+    let creatorVerified = false;
+    const user = Array.from(this.users.values()).find(
+      user => user.address === insertCampaign.owner
+    );
+    
+    if (user && user.isVerified) {
+      creatorVerified = true;
+    }
+    
     const campaign: Campaign = { 
       ...insertCampaign, 
       id, 
       amountCollected, 
-      createdAt
+      createdAt,
+      requiresVerification: true,
+      creatorVerified,
+      pId: insertCampaign.pId || null
     };
     
     this.campaigns.set(id, campaign);
@@ -123,6 +172,16 @@ export class MemStorage implements IStorage {
     this.campaigns.set(id, {
       ...campaign,
       amountCollected: newAmount.toString()
+    });
+  }
+  
+  async updateCampaignVerificationStatus(id: number, verified: boolean): Promise<void> {
+    const campaign = this.campaigns.get(id);
+    if (!campaign) throw new Error("Campaign not found");
+    
+    this.campaigns.set(id, {
+      ...campaign,
+      creatorVerified: verified
     });
   }
   

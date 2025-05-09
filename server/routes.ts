@@ -137,15 +137,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "") {
         // Provide a fallback response for when API key is not available or rate limited
         const mockResponse = {
-          campaignPitch: promptText.includes("pitch") ? 
-            "This is a compelling campaign that will revolutionize the industry by leveraging blockchain technology to create a decentralized solution. Our platform is designed to be user-friendly while maintaining the highest standards of security and transparency." : undefined,
-          goalEstimate: promptText.includes("goal") || promptText.includes("fund") ? {
+          campaignPitch: "This is a compelling campaign that will revolutionize the industry by leveraging blockchain technology to create a decentralized solution. Our platform is designed to be user-friendly while maintaining the highest standards of security and transparency.",
+          goalEstimate: {
             min: "1.5",
             max: "5.0",
             recommendedAmount: "3.0",
             rationale: "Based on similar blockchain projects, a recommended funding target of 3.0 ETH provides enough capital for development while remaining achievable."
-          } : undefined,
-          milestones: promptText.includes("milestone") ? [
+          },
+          milestones: [
             {
               name: "Initial Development",
               description: "Complete the core functionality and smart contract development.",
@@ -161,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               description: "Full public release with all features implemented.",
               timeframe: "6 months"
             }
-          ] : undefined
+          ]
         };
         
         // Save the interaction with mock response
@@ -212,17 +211,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (apiError) {
         console.error("OpenAI API error:", apiError);
         
-        // Fallback to mock response
+        // Fallback to mock response with at least one field always present
         const mockResponse = {
-          campaignPitch: promptText.includes("pitch") ? 
-            "This is a compelling campaign that will revolutionize the industry by leveraging blockchain technology to create a decentralized solution. Our platform is designed to be user-friendly while maintaining the highest standards of security and transparency." : undefined,
-          goalEstimate: promptText.includes("goal") || promptText.includes("fund") ? {
+          campaignPitch: "This is a compelling campaign that will revolutionize the industry by leveraging blockchain technology to create a decentralized solution. Our platform is designed to be user-friendly while maintaining the highest standards of security and transparency.",
+          goalEstimate: {
             min: "1.5",
             max: "5.0",
             recommendedAmount: "3.0",
             rationale: "Based on similar blockchain projects, a recommended funding target of 3.0 ETH provides enough capital for development while remaining achievable."
-          } : undefined,
-          milestones: promptText.includes("milestone") ? [
+          },
+          milestones: [
             {
               name: "Initial Development",
               description: "Complete the core functionality and smart contract development.",
@@ -238,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               description: "Full public release with all features implemented.",
               timeframe: "6 months"
             }
-          ] : undefined
+          ]
         };
         
         // Save the interaction with mock response

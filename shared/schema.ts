@@ -7,6 +7,10 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   address: text("address").notNull().unique(),
+  isVerified: boolean("is_verified").default(false),
+  verificationMethod: text("verification_method"), // "BrightID" or "PolygonID"
+  verificationProof: text("verification_proof"), // Proof/credential hash
+  verificationTimestamp: timestamp("verification_timestamp"),
 });
 
 export const campaigns = pgTable("campaigns", {
@@ -20,7 +24,9 @@ export const campaigns = pgTable("campaigns", {
   image: text("image").notNull(),
   category: text("category").notNull(),
   pId: integer("pid"), // Campaign ID from blockchain
-  createdAt: timestamp("created_at").defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  requiresVerification: boolean("requires_verification").default(true).notNull(),
+  creatorVerified: boolean("creator_verified").default(false)
 });
 
 export const donations = pgTable("donations", {
