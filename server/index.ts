@@ -33,7 +33,10 @@ async function addSampleData() {
           deadline: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
           image: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1374&q=80",
           category: "Education",
-          pId: 1
+          pId: 1,
+          requiresVerification: true,
+          creatorVerified: false,
+          amountCollected: "1.2"
         },
         {
           title: "Smart Healthcare Monitoring",
@@ -43,7 +46,11 @@ async function addSampleData() {
           deadline: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
           image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80",
           category: "Healthcare",
-          pId: 2
+          pId: 2,
+          requiresVerification: true,
+          creatorVerified: true,
+          verificationMethod: "PolygonID",
+          amountCollected: "3.8"
         },
         {
           title: "Community Garden Initiative",
@@ -53,7 +60,9 @@ async function addSampleData() {
           deadline: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // 25 days from now
           image: "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1740&q=80",
           category: "Community",
-          pId: 3
+          pId: 3,
+          requiresVerification: false,
+          amountCollected: "1.6"
         },
         {
           title: "Clean Water Technology",
@@ -63,7 +72,10 @@ async function addSampleData() {
           deadline: new Date(Date.now() + 40 * 24 * 60 * 60 * 1000), // 40 days from now
           image: "https://images.unsplash.com/photo-1527203561188-dae1bc1a417f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1015&q=80",
           category: "Technology",
-          pId: 4
+          pId: 4,
+          requiresVerification: true,
+          creatorVerified: false,
+          amountCollected: "0.9"
         }
       ];
 
