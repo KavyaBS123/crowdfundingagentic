@@ -1,13 +1,13 @@
-import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { 
-  insertCampaignSchema, 
-  insertDonationSchema, 
-  insertGptInteractionSchema, 
+import {
+  insertCampaignSchema,
+  insertDonationSchema,
   insertUserSchema
 } from "@shared/schema";
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import fetch from 'node-fetch'; // or use global fetch if on Node 18+
 import OpenAI from "openai";
+import { storage } from "./storage";
 
 // Initialize OpenAI
 const openai = new OpenAI({ 
@@ -24,7 +24,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(userData);
       res.status(201).json(user);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
   
@@ -36,7 +37,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(user);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -67,7 +69,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "User verified with BrightID successfully" 
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -96,13 +99,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateCampaignVerificationStatus(campaign.id, true);
       }
       
+
       res.json({ 
         success: true, 
         user,
         message: "User verified with Polygon ID successfully" 
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -112,7 +117,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaigns = await storage.getCampaigns();
       res.json(campaigns);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -124,7 +130,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(campaign);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -133,7 +140,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaigns = await storage.getCampaignsByOwner(req.params.owner);
       res.json(campaigns);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -142,7 +150,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaigns = await storage.getCampaignsByCategory(req.params.category);
       res.json(campaigns);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -152,7 +161,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const campaign = await storage.createCampaign(campaignData);
       res.status(201).json(campaign);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
   
@@ -166,7 +176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateCampaignAmountCollected(parseInt(req.params.id), amount);
       res.json({ success: true });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -188,7 +199,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         verificationMethod: user ? user.verificationMethod : null
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -210,7 +222,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: verified ? "Campaign creator verified" : "Campaign creator verification removed" 
       });
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -220,7 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const donations = await storage.getDonations(parseInt(req.params.campaignId));
       res.json(donations);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -230,7 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const donation = await storage.createDonation(donationData);
       res.status(201).json(donation);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(400).json({ error: message });
     }
   });
   
@@ -274,16 +289,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Save the interaction with mock response
-        const mockResponseText = JSON.stringify(mockResponse);
+        const responseTextStr: string = JSON.stringify(mockResponse) ?? '{}';
         const interaction = await storage.createGptInteraction({
           userId,
           promptText,
-          responseText: mockResponseText
+          responseText: responseTextStr
         });
         
         return res.json({
           id: interaction.id,
-          response: mockResponse
+          response: JSON.parse(responseTextStr)
         });
       }
       
@@ -308,15 +323,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const responseText = response.choices[0].message.content;
         
         // Save the interaction
+        const responseTextStr: string = typeof responseText === 'string' ? responseText : (responseText ?? '{}');
         const interaction = await storage.createGptInteraction({
           userId,
           promptText,
-          responseText
+          responseText: responseTextStr
         });
         
         res.json({
           id: interaction.id,
-          response: JSON.parse(responseText)
+          response: JSON.parse(responseTextStr)
         });
       } catch (apiError) {
         console.error("OpenAI API error:", apiError);
@@ -350,21 +366,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Save the interaction with mock response
-        const mockResponseText = JSON.stringify(mockResponse);
+        const responseTextStr: string = JSON.stringify(mockResponse) ?? '{}';
         const interaction = await storage.createGptInteraction({
           userId,
           promptText,
-          responseText: mockResponseText
+          responseText: responseTextStr
         });
         
         res.json({
           id: interaction.id,
-          response: mockResponse
+          response: JSON.parse(responseTextStr)
         });
       }
     } catch (error) {
-      console.error("Server error:", error);
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      console.error("Server error:", message);
+      res.status(500).json({ error: message });
     }
   });
   
@@ -373,8 +390,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const interactions = await storage.getGptInteractions(parseInt(req.params.userId));
       res.json(interactions);
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
     }
+  });
+
+  // DeepSeek route
+  app.post('/api/deepseek/assist', async (req, res) => {
+    try {
+      const { promptText, userId } = req.body;
+      if (!process.env.DEEPSEEK_API_KEY) {
+        return res.status(500).json({ error: "DeepSeek API key not set" });
+      }
+      const deepseekResponse = await fetch('https://api.deepseek.com/your-endpoint', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: promptText,
+          // ...other params as required by DeepSeek...
+        })
+      });
+      const data = await deepseekResponse.json();
+      res.json({
+        campaignPitch: data.result || data.campaignPitch || data.text || "No result from DeepSeek"
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error in /api/deepseek/assist:', message);
+      res.status(500).json({ error: 'Failed to get DeepSeek response: ' + message });
+    }
+  });
+
+  // Top Donors route (hardcoded for demo)
+  app.get('/api/donors/top', (_req: Request, res: Response) => {
+    res.json({
+      donors: [
+        {
+          address: "0x1234...abcd",
+          totalDonated: 5.2,
+          streakCount: 10,
+          badges: ["🏅", "🔥"],
+          level: 4
+        },
+        {
+          address: "0xabcd...5678",
+          totalDonated: 3.8,
+          streakCount: 7,
+          badges: ["🏅"],
+          level: 3
+        },
+        {
+          address: "0x9876...4321",
+          totalDonated: 2.5,
+          streakCount: 5,
+          badges: ["🏅"],
+          level: 2
+        }
+      ]
+    });
   });
 
   const httpServer = createServer(app);

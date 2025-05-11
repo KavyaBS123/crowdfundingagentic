@@ -1,21 +1,21 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import BrightIDButton from '@/components/BrightIDButton';
+import ConnectWalletModal from '@/components/ConnectWalletModal';
+import CustomFormField from '@/components/FormField';
+import GptAssistant from '@/components/GptAssistant';
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import VerifyUserDialog from '@/components/VerifyUserDialog';
+import { categories } from '@/constants';
 import { useThirdweb } from '@/context/ThirdwebContext';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Form } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
-import CustomFormField from '@/components/FormField';
-import Loader from '@/components/Loader';
 import { createCampaign } from '@/lib/contract';
-import { categories } from '@/constants';
-import { getPitchSuggestion, getFundingGoalEstimation, getMilestoneSuggestions } from '@/lib/openai';
-import GptAssistant from '@/components/GptAssistant';
-import ConnectWalletModal from '@/components/ConnectWalletModal';
-import VerifyUserDialog from '@/components/VerifyUserDialog';
+import { getFundingGoalEstimation, getPitchSuggestion } from '@/lib/openai';
 import { apiRequest } from '@/lib/queryClient';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useLocation } from 'wouter';
+import { z } from 'zod';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
@@ -40,6 +40,7 @@ const CreateCampaign = () => {
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
   const [userVerified, setUserVerified] = useState(false);
+  const [isBrightIDVerified, setIsBrightIDVerified] = useState(false);
   
   const { address, connect } = useThirdweb();
   const { toast } = useToast();
@@ -105,53 +106,30 @@ const CreateCampaign = () => {
     setIsWalletModalOpen(true);
   };
 
+  const handleBrightIDVerificationComplete = () => {
+    setIsBrightIDVerified(true);
+    setUserVerified(true);
+    toast({
+      title: "Verification Complete",
+      description: "You can now create your campaign.",
+    });
+  };
+
   const onSubmit = async (values: FormValues) => {
     if (!address) {
       handleConnectWallet();
       return;
     }
 
-    // Check BrightID verification first
-    try {
-      const brightIdResponse = await fetch(`https://app.brightid.org/node/v5/verifications/Crowdfund3r/${address}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const brightIdData = await brightIdResponse.json();
-      
-      if (!brightIdData.data || !brightIdData.data.unique) {
-        toast({
-          title: "Verification Required",
-          description: "You must be verified on BrightID to create a campaign",
-          variant: "destructive",
-        });
-        setIsVerifyDialogOpen(true);
-        return;
-      }
-    } catch (error) {
-      console.error('Error checking BrightID verification:', error);
-      toast({
-        title: "Verification Error",
-        description: "Failed to verify BrightID status. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Check if user is verified
-    if (!userVerified) {
+    if (!isBrightIDVerified) {
       toast({
         title: "Verification Required",
-        description: "Please verify your identity before creating a campaign",
+        description: "Please verify your identity with BrightID before creating a campaign",
         variant: "destructive",
       });
-      setIsVerifyDialogOpen(true);
       return;
     }
-    
+
     setIsSubmitting(true);
     
     try {
@@ -170,7 +148,7 @@ const CreateCampaign = () => {
           owner: address,
           requiresVerification: true,
           creatorVerified: true,
-          verificationMethod: "BrightID", // Default to BrightID for simplicity
+          verificationMethod: "BrightID",
         });
       } catch (backendError) {
         console.error('Error creating campaign in backend:', backendError);
@@ -316,6 +294,24 @@ const CreateCampaign = () => {
     <div className="mb-12">
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 md:p-8 shadow-campaign">
         <h1 className="text-2xl md:text-3xl font-bold mb-6">Create a Campaign</h1>
+        
+        {!isBrightIDVerified && (
+          <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-100 dark:border-blue-800">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+                <i className="ri-shield-check-line text-blue-600 dark:text-blue-400 text-2xl"></i>
+              </div>
+              <h3 className="text-xl font-bold mb-2">Identity Verification Required</h3>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                To ensure the authenticity of campaign creators, please verify your identity using BrightID.
+              </p>
+              <BrightIDButton 
+                address={address} 
+                onVerificationComplete={handleBrightIDVerificationComplete}
+              />
+            </div>
+          </div>
+        )}
         
         <div className="mb-8 p-4 bg-gradient-to-r from-secondary/10 to-primary/10 rounded-xl">
           <div className="flex flex-col md:flex-row md:items-center gap-4">

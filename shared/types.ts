@@ -27,6 +27,8 @@ export interface CampaignMetadata {
 export interface DonationData {
   amount: string;
   campaignId: number;
+  donorAddress: string;
+  timestamp: number;
 }
 
 export interface GptAssistantResponse {
@@ -47,4 +49,15 @@ export interface GptAssistantResponse {
 export interface WalletInfo {
   address: string;
   balance: string;
+}
+
+export interface UserData {
+  id: number;
+  address: string;
+  badges?: number[]; // badge IDs
+  streakHistory?: number[]; // 1 = donated, 0 = not, for last 7 days
+  xp?: number;
+  level?: number;
+  streakCount?: number;
+  lastDonationTime?: number;
 }

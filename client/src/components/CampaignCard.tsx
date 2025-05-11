@@ -1,6 +1,6 @@
-import { Link } from 'wouter';
 import { calculateDaysLeft } from '@/lib/contract';
 import { CampaignMetadata } from '@shared/types';
+import { Link } from 'wouter';
 import VerificationBadge from './VerificationBadge';
 
 interface CampaignCardProps {

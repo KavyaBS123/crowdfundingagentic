@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'wouter';
 import { useThirdweb } from '@/context/ThirdwebContext';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import ConnectWalletModal from './ConnectWalletModal';
 
 const Navbar = () => {
@@ -56,7 +56,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-30 bg-white dark:bg-bgDark ${isScrolled ? 'shadow-md' : ''} transition-shadow`}>
+    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 text-gray-900 dark:text-gray-100 fixed top-0 left-0 right-0 z-30 transition-shadow">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo */}
@@ -116,7 +116,7 @@ const Navbar = () => {
             {/* Create Campaign Link - Desktop */}
             <Link 
               href="/create-campaign" 
-              className="hidden md:block text-primary hover:text-primary/80 dark:text-primary font-medium"
+              className="hidden md:block font-medium text-gray-900 dark:text-gray-100 hover:text-primary dark:hover:text-primary"
             >
               Create a Campaign
             </Link>

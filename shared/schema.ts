@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
+import { boolean, integer, numeric, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -69,7 +69,12 @@ export const insertGptInteractionSchema = createInsertSchema(gptInteractions).om
 });
 
 // Type exports
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  badges?: string[];
+  streakCount?: number;
+  lastDonationTime?: Date;
+};
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
 export type Campaign = typeof campaigns.$inferSelect;

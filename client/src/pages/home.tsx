@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'wouter';
 import CampaignCard from '@/components/CampaignCard';
-import Loader from '@/components/Loader';
-import { useThirdweb } from '@/context/ThirdwebContext';
-import { getCampaigns } from '@/lib/contract';
-import { categories, statsData, howItWorksData, web3BenefitsData } from '@/constants';
-import { CampaignMetadata } from '@shared/types';
-import { useToast } from '@/hooks/use-toast';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
+import Loader from '@/components/Loader';
+import { categories, howItWorksData, statsData, web3BenefitsData } from '@/constants';
+import { useThirdweb } from '@/context/ThirdwebContext';
+import { useToast } from '@/hooks/use-toast';
+import { getCampaigns } from '@/lib/contract';
+import { CampaignMetadata } from '@shared/types';
+import { useEffect, useState } from 'react';
+import { Link } from 'wouter';
 
 const HomePage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -29,11 +29,7 @@ const HomePage = () => {
         setFilteredCampaigns(allCampaigns);
       } catch (error) {
         console.error('Failed to fetch campaigns:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch campaigns. Please try again.',
-          variant: 'destructive',
-        });
+        
       } finally {
         setIsLoading(false);
       }

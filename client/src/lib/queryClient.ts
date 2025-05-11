@@ -34,7 +34,7 @@ export const getQueryFn: <T>(options: {
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+      return null as unknown as TestError;
     }
 
     await throwIfResNotOk(res);

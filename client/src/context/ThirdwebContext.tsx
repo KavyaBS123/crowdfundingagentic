@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { checkIfWalletIsConnected, connectWallet } from '@/lib/contract';
+import { apiRequest } from '@/lib/queryClient';
 import { WalletInfo } from '@shared/types';
 import { ethers } from 'ethers';
-import { apiRequest } from '@/lib/queryClient';
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 // Add ethers WindowProvider interface to global Window interface
 declare global {
@@ -14,7 +14,7 @@ declare global {
 
 interface ThirdwebContextType {
   address: string | null;
-  balance: string;
+  provider: ethers.BrowserProvider | null;
   connect: () => Promise<void>;
   disconnect: () => void;
   isLoading: boolean;
@@ -22,7 +22,7 @@ interface ThirdwebContextType {
 
 const ThirdwebContext = createContext<ThirdwebContextType>({
   address: null,
-  balance: '0',
+  provider: null,
   connect: async () => {},
   disconnect: () => {},
   isLoading: false,
@@ -184,7 +184,7 @@ export const ThirdwebProvider = ({ children }: ThirdwebProviderProps) => {
     <ThirdwebContext.Provider
       value={{
         address: walletInfo.address || null,
-        balance: walletInfo.balance,
+        provider: null,
         connect,
         disconnect,
         isLoading,

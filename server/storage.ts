@@ -1,9 +1,22 @@
-import { 
-  User, InsertUser, 
-  Campaign, InsertCampaign, 
-  Donation, InsertDonation, 
-  GptInteraction, InsertGptInteraction 
+import {
+    Campaign,
+    Donation,
+    GptInteraction,
+    InsertCampaign,
+    InsertDonation,
+    InsertGptInteraction,
+    InsertUser,
+    User
 } from "@shared/schema";
+
+function getStreakBadge(streak: number): string | null {
+  if (streak >= 30) return 'Custom Governance';
+  if (streak >= 14) return 'Voting Rights NFT';
+  if (streak >= 7) return 'Gold Badge NFT';
+  if (streak >= 3) return 'Silver Badge NFT';
+  if (streak >= 1) return 'Bronze Badge NFT';
+  return null;
+}
 
 export interface IStorage {
   // User operations
@@ -79,7 +92,10 @@ export class MemStorage implements IStorage {
       isVerified: false,
       verificationMethod: null,
       verificationProof: null,
-      verificationTimestamp: null
+      verificationTimestamp: null,
+      badges: ['Pioneer'],
+      streakCount: 0,
+      lastDonationTime: undefined,
     };
     this.users.set(id, user);
     return user;
@@ -148,6 +164,26 @@ export class MemStorage implements IStorage {
       creatorVerified = true;
     }
     
+    // Check BrightID verification status
+    try {
+      const brightIdResponse = await fetch(
+        `https://app.brightid.org/node/v5/verifications/Crowdfund3r/${insertCampaign.owner}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      const brightIdData = await brightIdResponse.json();
+      if (brightIdData.data && brightIdData.data.unique) {
+        creatorVerified = true;
+      }
+    } catch (error) {
+      console.error('Error checking BrightID verification:', error);
+    }
+    
     const campaign: Campaign = { 
       ...insertCampaign, 
       id, 
@@ -159,6 +195,16 @@ export class MemStorage implements IStorage {
     };
     
     this.campaigns.set(id, campaign);
+
+    if (user) {
+      // Award 'Creator' badge if this is their first campaign
+      const userCampaigns = Array.from(this.campaigns.values()).filter(c => c.owner === user.address);
+      if (userCampaigns.length === 0 && !(user.badges || []).includes('Creator')) {
+        user.badges = [...(user.badges || []), 'Creator'];
+        this.users.set(user.id, user);
+      }
+    }
+    
     return campaign;
   }
   
@@ -196,12 +242,38 @@ export class MemStorage implements IStorage {
     const id = this.currentDonationId++;
     const timestamp = new Date();
     
+    // Streak logic and badge logic
+    const user = Array.from(this.users.values()).find(
+      (u) => u.address === insertDonation.donator
+    );
+    if (user) {
+      const now = new Date();
+      const last = user.lastDonationTime ? new Date(user.lastDonationTime) : null;
+      const oneDay = 24 * 60 * 60 * 1000;
+      const twoDays = 2 * oneDay;
+      if (last) {
+        const diff = now.getTime() - last.getTime();
+        if (diff < twoDays && diff >= oneDay) {
+          user.streakCount = (user.streakCount || 0) + 1;
+        } else if (diff >= twoDays) {
+          user.streakCount = 1;
+        }
+      } else {
+        user.streakCount = 1;
+      }
+      user.lastDonationTime = now;
+      // Award streak badge
+      const badge = getStreakBadge(user.streakCount || 0);
+      if (badge && !(user.badges || []).includes(badge)) {
+        user.badges = [...(user.badges || []), badge];
+      }
+      this.users.set(user.id, user);
+    }
     const donation: Donation = { 
       ...insertDonation, 
       id, 
       timestamp
     };
-    
     this.donations.set(id, donation);
     return donation;
   }

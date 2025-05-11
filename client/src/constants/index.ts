@@ -15,6 +15,11 @@ export const navLinks = [
     icon: 'ri-add-circle-line',
   },
   {
+    name: 'Donor Dashboard',
+    path: '/donor-dashboard',
+    icon: 'ri-trophy-line',
+  },
+  {
     name: 'Profile',
     path: '/profile',
     icon: 'ri-user-3-line',

@@ -1,19 +1,56 @@
-import { useState, useEffect } from 'react';
-import { useThirdweb } from '@/context/ThirdwebContext';
-import { getCampaigns } from '@/lib/contract';
-import { CampaignMetadata } from '@shared/types';
-import Loader from '@/components/Loader';
 import CampaignCard from '@/components/CampaignCard';
-import { Button } from '@/components/ui/button';
 import ConnectWalletModal from '@/components/ConnectWalletModal';
-import { useToast } from '@/hooks/use-toast';
+import Loader from '@/components/Loader';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useThirdweb } from '@/context/ThirdwebContext';
+import { useToast } from '@/hooks/use-toast';
+import { getCampaigns } from '@/lib/contract';
+import { apiRequest } from '@/lib/queryClient';
+import { CampaignMetadata } from '@shared/types';
+import { useEffect, useState } from 'react';
+
+const badgeSvgs: Record<string, JSX.Element> = {
+  'Pioneer': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#00b894"/><text x="14" y="19" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="bold">🚀</text></svg>
+  ),
+  'Creator': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#fdcb6e"/><text x="14" y="19" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="bold">✍️</text></svg>
+  ),
+  'Bronze Badge NFT': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#cd7f32"/><text x="14" y="19" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="bold">🥉</text></svg>
+  ),
+  'Silver Badge NFT': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#C0C0C0"/><text x="14" y="19" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="bold">🥈</text></svg>
+  ),
+  'Gold Badge NFT': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#FFD700"/><text x="14" y="19" textAnchor="middle" fontSize="16" fill="#fff" fontWeight="bold">🥇</text></svg>
+  ),
+  'Voting Rights NFT': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#4F8AFA"/><g><rect x="8" y="10" width="12" height="8" rx="2" fill="#fff"/><rect x="12" y="8" width="4" height="4" rx="1" fill="#4F8AFA"/></g></svg>
+  ),
+  'Custom Governance': (
+    <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="14" fill="#8e44ad"/><g><polygon points="14,6 18,20 10,20" fill="#fff"/><circle cx="14" cy="10" r="2" fill="#8e44ad"/></g></svg>
+  ),
+};
+
+const badgeDescriptions: Record<string, string> = {
+  'Pioneer': 'Awarded for connecting your wallet for the first time',
+  'Creator': 'Awarded for creating your first campaign',
+  'Bronze Badge NFT': 'Awarded for a 1+ day donation streak',
+  'Silver Badge NFT': 'Awarded for a 3+ day donation streak',
+  'Gold Badge NFT': 'Awarded for a 7+ day donation streak',
+  'Voting Rights NFT': 'Awarded for a 14+ day donation streak',
+  'Custom Governance': 'Awarded for a 30+ day donation streak',
+};
 
 const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<CampaignMetadata[]>([]);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("created");
+  const [userBadges, setUserBadges] = useState<string[]>([]);
+  const [userStreak, setUserStreak] = useState(0);
   
   const { address, connect, balance } = useThirdweb();
   const { toast } = useToast();
@@ -32,15 +69,11 @@ const Profile = () => {
           : allCampaigns.filter(campaign => campaign.donators.some(
               donator => donator.toLowerCase() === address.toLowerCase()
             ));
-        
+
         setCampaigns(filteredCampaigns);
       } catch (error) {
         console.error('Error fetching campaigns:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch campaigns. Please try again.',
-          variant: 'destructive',
-        });
+        
       } finally {
         setIsLoading(false);
       }
@@ -48,6 +81,23 @@ const Profile = () => {
 
     fetchCampaigns();
   }, [address, activeTab]);
+
+  useEffect(() => {
+    const fetchUserBadges = async () => {
+      if (!address) return;
+      try {
+        const user = await apiRequest(`/api/users/address/${address}`, 'GET');
+        if (user) {
+          setUserBadges(user.badges || []);
+          setUserStreak(user.streakCount || 0);
+        }
+      } catch (error) {
+        setUserBadges([]);
+        setUserStreak(0);
+      }
+    };
+    fetchUserBadges();
+  }, [address]);
 
   const handleConnectWallet = () => {
     setIsWalletModalOpen(true);
@@ -92,11 +142,29 @@ const Profile = () => {
             <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center">
               <i className="ri-user-3-line text-white text-2xl"></i>
             </div>
+            
             <div>
               <h1 className="text-2xl font-bold mb-1">My Profile</h1>
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {address.substring(0, 6)}...{address.substring(address.length - 4)}
               </p>
+              {/* Badge and streak display */}
+              {userBadges.length > 0 && (
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  {userBadges.map((badge) => (
+                    <span
+                      key={badge}
+                      className="w-7 h-7 flex items-center justify-center"
+                      title={badgeDescriptions[badge]}
+                    >
+                      {badgeSvgs[badge]}
+                    </span>
+                  ))}
+                  {userStreak > 0 && (
+                    <span className="ml-2 text-xs text-gray-500">Streak: {userStreak}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           

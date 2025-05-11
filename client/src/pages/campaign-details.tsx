@@ -1,17 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
-import { useThirdweb } from '@/context/ThirdwebContext';
-import { getCampaign, calculateDaysLeft, donateToCampaign, getDonators } from '@/lib/contract';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import ConnectWalletModal from '@/components/ConnectWalletModal';
 import CountBox from '@/components/CountBox';
 import Loader from '@/components/Loader';
-import { CampaignMetadata } from '@shared/types';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import ConnectWalletModal from '@/components/ConnectWalletModal';
 import VerificationBadge from '@/components/VerificationBadge';
 import VerifyUserDialog from '@/components/VerifyUserDialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { useThirdweb } from '@/context/ThirdwebContext';
+import { useToast } from '@/hooks/use-toast';
+import { useDonorXP } from '@/hooks/useDonorXP';
+import { calculateDaysLeft, donateToCampaign, getCampaign, getDonators } from '@/lib/contract';
+import { apiRequest } from '@/lib/queryClient';
+import { CampaignMetadata } from '@shared/types';
+import { useEffect, useState } from 'react';
+import { useLocation } from 'wouter';
 
 const CampaignDetails = () => {
   const [campaign, setCampaign] = useState<CampaignMetadata | null>(null);
@@ -27,6 +29,9 @@ const CampaignDetails = () => {
     verificationMethod: null as string | null
   });
   const [userId, setUserId] = useState<number | null>(null);
+  const [showDonationSuccess, setShowDonationSuccess] = useState(false);
+  const [newBadges, setNewBadges] = useState<string[]>([]);
+  const { addXP, updateStreak, checkAndAwardBadges } = useDonorXP();
   
   const { address, connect } = useThirdweb();
   const { toast } = useToast();
@@ -224,10 +229,25 @@ const CampaignDetails = () => {
     try {
       await donateToCampaign(pId, amount);
       
+      // Add XP for donation
+      await addXP(100, 'donation');
+      
+      // Update streak
+      await updateStreak();
+      
+      // Check for new badges
+      const earnedBadges = await checkAndAwardBadges();
+      if (earnedBadges.length > 0) {
+        setNewBadges(earnedBadges);
+      }
+      
       toast({
         title: 'Success!',
         description: `You have successfully donated ${amount} ETH to this campaign.`,
       });
+      
+      // Show donation success modal with badges if any were earned
+      setShowDonationSuccess(true);
       
       // Refresh campaign data
       const campaignData = await getCampaign(pId);
@@ -479,6 +499,36 @@ const CampaignDetails = () => {
           onVerificationComplete={handleVerificationComplete}
         />
       )}
+      
+      {/* Donation Success Modal */}
+      <Dialog open={showDonationSuccess} onOpenChange={setShowDonationSuccess}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Donation Successful! 🎉</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center py-4">
+            <div className="text-4xl mb-4">✨</div>
+            <h3 className="text-xl font-bold mb-2">Thank you for your donation!</h3>
+            <p className="text-gray-600 dark:text-gray-300 text-center mb-4">
+              You've earned 100 XP for your contribution.
+            </p>
+            
+            {newBadges.length > 0 && (
+              <div className="w-full">
+                <h4 className="font-bold mb-2">New Badges Unlocked!</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {newBadges.map((badge, index) => (
+                    <div key={index} className="bg-primary/10 rounded-lg p-3 text-center">
+                      <span className="text-2xl mb-1 block">{badge}</span>
+                      <span className="text-sm font-medium">{badge}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

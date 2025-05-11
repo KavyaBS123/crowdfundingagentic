@@ -10,6 +10,7 @@ contract CrowdFunding {
         uint256 deadline;
         uint256 amountCollected;
         string image;
+
         address[] donators;
         uint256[] donations;
         string category;
@@ -74,11 +75,19 @@ contract CrowdFunding {
 
             allCampaigns[i] = item;
         }
-
         return allCampaigns;
     }
 
     function getCampaign(uint256 _id) public view returns (Campaign memory) {
         return campaigns[_id];
+    }
+
+    function getBadgeForStreak(streak: number): string {
+        if (streak >= 30) return 'Custom Governance';
+        if (streak >= 14) return 'Voting Rights NFT';
+        if (streak >= 7) return 'Gold Badge NFT';
+        if (streak >= 3) return 'Silver Badge NFT';
+        if (streak >= 1) return 'Bronze Badge NFT';
+        return '';
     }
 }

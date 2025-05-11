@@ -1,7 +1,7 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { NextFunction, type Request, Response } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { log, serveStatic, setupVite } from "./vite";
 
 // Add sample campaign data for demo purposes
 async function addSampleData() {
@@ -17,7 +17,7 @@ async function addSampleData() {
           owner: "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
           target: "5",
           deadline: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          image: "https://images.unsplash.com/photo-1509390144018-eeef46f70b8b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1738&q=80",
+          image: "https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1374&q=80",
           category: "Environment",
           pId: 0,
           requiresVerification: true,
