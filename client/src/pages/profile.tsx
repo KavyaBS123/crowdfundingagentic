@@ -51,6 +51,7 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("created");
   const [userBadges, setUserBadges] = useState<string[]>([]);
   const [userStreak, setUserStreak] = useState(0);
+  const [savedCampaigns, setSavedCampaigns] = useState<CampaignMetadata[]>([]);
   
   const { address, connect, balance } = useThirdweb();
   const { toast } = useToast();
@@ -97,6 +98,27 @@ const Profile = () => {
       }
     };
     fetchUserBadges();
+  }, [address]);
+
+  useEffect(() => {
+    const fetchSavedCampaigns = async () => {
+      if (!address) return;
+      try {
+        const user = await apiRequest(`/api/users/address/${address}`, 'GET');
+        if (user?.id) {
+          const saved = await apiRequest(`/api/users/${user.id}/saved-campaigns`, 'GET');
+          if (saved.savedCampaignIds && saved.savedCampaignIds.length > 0) {
+            const allCampaigns = await getCampaigns();
+            setSavedCampaigns(allCampaigns.filter(c => saved.savedCampaignIds.includes(c.pId)));
+          } else {
+            setSavedCampaigns([]);
+          }
+        }
+      } catch (e) {
+        setSavedCampaigns([]);
+      }
+    };
+    fetchSavedCampaigns();
   }, [address]);
 
   const handleConnectWallet = () => {
@@ -180,15 +202,12 @@ const Profile = () => {
         </div>
       </div>
       
-      <Tabs defaultValue="created" onValueChange={handleTabChange}>
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">My Campaigns</h2>
-          <TabsList className="grid grid-cols-2 mb-6">
-            <TabsTrigger value="created">Created</TabsTrigger>
-            <TabsTrigger value="backed">Backed</TabsTrigger>
-          </TabsList>
-        </div>
-        
+      <Tabs defaultValue="created" value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="created">Created</TabsTrigger>
+          <TabsTrigger value="backed">Backed</TabsTrigger>
+          <TabsTrigger value="saved">Saved</TabsTrigger>
+        </TabsList>
         <TabsContent value="created">
           {isLoading ? (
             <Loader />
@@ -234,6 +253,33 @@ const Profile = () => {
               <h3 className="text-xl font-bold mb-2">No campaigns backed</h3>
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 You haven't backed any campaigns yet.
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/campaigns'}
+                className="px-6 py-3 bg-gradient-primary rounded-full text-white font-medium shadow-lg hover:opacity-90 transition-all"
+              >
+                Discover Campaigns
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+        <TabsContent value="saved">
+          {isLoading ? (
+            <Loader />
+          ) : savedCampaigns.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {savedCampaigns.map((campaign, i) => (
+                <CampaignCard key={i} campaign={campaign} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="ri-bookmark-line text-primary text-2xl"></i>
+              </div>
+              <h3 className="text-xl font-bold mb-2">No saved campaigns</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                You haven't saved any campaigns yet.
               </p>
               <Button 
                 onClick={() => window.location.href = '/campaigns'}

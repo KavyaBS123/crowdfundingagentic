@@ -10,6 +10,14 @@ export interface CampaignFormData {
 export interface CampaignMetadata {
   title: string;
   description: string;
+  metaDescription?: string;
+  videoUrl?: string;
+  videoThumbnail?: string;
+  storySections?: StorySection[];
+  stretchGoals?: StretchGoal[];
+  timeline?: TimelineMilestone[];
+  team?: TeamMember[];
+  risks?: string;
   target: string; // Ethers in string format
   deadline: string; // Date in string format
   image: string;
@@ -22,6 +30,39 @@ export interface CampaignMetadata {
   requiresVerification?: boolean; // Whether the campaign requires creator verification
   creatorVerified?: boolean; // Whether the creator is verified
   verificationMethod?: string; // BrightID or PolygonID
+  rewards?: Reward[];
+  faq?: FAQ[];
+  updates?: CampaignUpdate[];
+  comments?: CampaignComment[];
+  community?: CampaignCommunity;
+}
+
+export interface Reward {
+  title: string;
+  description: string;
+  minimumAmount: string;
+}
+
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface CampaignUpdate {
+  date: string;
+  content: string;
+}
+
+export interface CampaignComment {
+  user: string;
+  comment: string;
+  date: string;
+}
+
+export interface CampaignCommunity {
+  backers: number;
+  discussions: number;
+  // Add more fields as needed
 }
 
 export interface DonationData {
@@ -51,6 +92,13 @@ export interface WalletInfo {
   balance: string;
 }
 
+export interface SavedCampaign {
+  id: number;
+  userId: number;
+  campaignId: number;
+  createdAt: string;
+}
+
 export interface UserData {
   id: number;
   address: string;
@@ -60,4 +108,28 @@ export interface UserData {
   level?: number;
   streakCount?: number;
   lastDonationTime?: number;
+  savedCampaigns?: SavedCampaign[];
+}
+
+export interface StorySection {
+  title: string;
+  content: string;
+}
+
+export interface StretchGoal {
+  goal: string;
+  description: string;
+}
+
+export interface TimelineMilestone {
+  milestone: string;
+  date: string;
+  description: string;
+}
+
+export interface TeamMember {
+  name: string;
+  role: string;
+  bio: string;
+  avatar?: string;
 }

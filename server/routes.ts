@@ -135,6 +135,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Campaign features routes
+  app.post("/api/campaigns/:id/rewards", async (req: Request, res: Response) => {
+    try {
+      const { title, description, minimumAmount } = req.body;
+      if (!title || !description || !minimumAmount) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      await storage.addCampaignReward(parseInt(req.params.id), {
+        title,
+        description,
+        minimumAmount
+      });
+      
+      res.json({ success: true, message: "Reward added successfully" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  app.post("/api/campaigns/:id/faq", async (req: Request, res: Response) => {
+    try {
+      const { question, answer } = req.body;
+      if (!question || !answer) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      await storage.addCampaignFAQ(parseInt(req.params.id), {
+        question,
+        answer
+      });
+      
+      res.json({ success: true, message: "FAQ added successfully" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  app.post("/api/campaigns/:id/updates", async (req: Request, res: Response) => {
+    try {
+      const { content } = req.body;
+      if (!content) {
+        return res.status(400).json({ message: "Update content is required" });
+      }
+      
+      await storage.addCampaignUpdate(parseInt(req.params.id), {
+        date: new Date().toISOString(),
+        content
+      });
+      
+      res.json({ success: true, message: "Update added successfully" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  app.post("/api/campaigns/:id/comments", async (req: Request, res: Response) => {
+    try {
+      const { user, comment } = req.body;
+      if (!user || !comment) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      
+      await storage.addCampaignComment(parseInt(req.params.id), {
+        user,
+        comment,
+        date: new Date().toISOString()
+      });
+      
+      res.json({ success: true, message: "Comment added successfully" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+  
+  app.patch("/api/campaigns/:id/community", async (req: Request, res: Response) => {
+    try {
+      const { backers, discussions } = req.body;
+      
+      await storage.updateCampaignCommunity(parseInt(req.params.id), {
+        backers: backers || 0,
+        discussions: discussions || 0
+      });
+      
+      res.json({ success: true, message: "Community data updated successfully" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+  
   app.get("/api/campaigns/owner/:owner", async (req: Request, res: Response) => {
     try {
       const campaigns = await storage.getCampaignsByOwner(req.params.owner);
@@ -451,6 +546,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       ]
     });
+  });
+
+  // Saved campaigns routes
+  app.post("/api/users/:userId/save/:campaignId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const campaignId = parseInt(req.params.campaignId);
+      await storage.saveCampaign(userId, campaignId);
+      res.json({ success: true, message: "Campaign saved." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.delete("/api/users/:userId/save/:campaignId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const campaignId = parseInt(req.params.campaignId);
+      await storage.unsaveCampaign(userId, campaignId);
+      res.json({ success: true, message: "Campaign unsaved." });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
+  });
+
+  app.get("/api/users/:userId/saved-campaigns", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const savedCampaignIds = await storage.getSavedCampaigns(userId);
+      res.json({ savedCampaignIds });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      res.status(500).json({ error: message });
+    }
   });
 
   const httpServer = createServer(app);

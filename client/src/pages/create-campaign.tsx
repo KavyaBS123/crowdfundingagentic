@@ -16,9 +16,18 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useLocation } from 'wouter';
 import { z } from 'zod';
+import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters'),
+  metaDescription: z.string().min(10, 'Meta description must be at least 10 characters'),
+  videoUrl: z.string().url('Please provide a valid video URL').optional(),
+  videoThumbnail: z.string().url('Please provide a valid image URL').optional(),
+  storySections: z.array(z.object({ title: z.string(), content: z.string() })).optional(),
+  stretchGoals: z.array(z.object({ goal: z.string(), description: z.string() })).optional(),
+  timeline: z.array(z.object({ milestone: z.string(), date: z.string(), description: z.string() })).optional(),
+  team: z.array(z.object({ name: z.string(), role: z.string(), bio: z.string(), avatar: z.string().optional() })).optional(),
+  risks: z.string().optional(),
   description: z.string().min(10, 'Description must be at least 10 characters'),
   target: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Target amount must be a positive number',
@@ -50,6 +59,14 @@ const CreateCampaign = () => {
     resolver: zodResolver(formSchema),
     defaultValues: {
       title: '',
+      metaDescription: '',
+      videoUrl: '',
+      videoThumbnail: '',
+      storySections: [],
+      stretchGoals: [],
+      timeline: [],
+      team: [],
+      risks: '',
       description: '',
       target: '',
       deadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 days from now
@@ -140,6 +157,14 @@ const CreateCampaign = () => {
       try {
         await apiRequest('/api/campaigns', 'POST', {
           title: values.title,
+          metaDescription: values.metaDescription,
+          videoUrl: values.videoUrl,
+          videoThumbnail: values.videoThumbnail,
+          storySections: values.storySections,
+          stretchGoals: values.stretchGoals,
+          timeline: values.timeline,
+          team: values.team,
+          risks: values.risks,
           description: values.description,
           target: values.target,
           deadline: values.deadline.toISOString(),
@@ -386,6 +411,67 @@ const CreateCampaign = () => {
                   name="image"
                   labelText="Campaign Image URL"
                   placeholder="Place image URL of your campaign"
+                />
+                <CustomFormField
+                  form={form}
+                  name="metaDescription"
+                  labelText="Meta Description"
+                  placeholder="Short project overview for SEO and clarity"
+                />
+                <CustomFormField
+                  form={form}
+                  name="videoUrl"
+                  labelText="Campaign Video URL"
+                  placeholder="Paste a short video URL (under 1 min)"
+                />
+                <CustomFormField
+                  form={form}
+                  name="videoThumbnail"
+                  labelText="Video Thumbnail URL"
+                  placeholder="Paste a thumbnail image URL for the video"
+                />
+                {/* Story Sections */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Project Story Sections</label>
+                  {/* Add UI for dynamic story sections here (for brevity, use a textarea for now) */}
+                  <Textarea
+                    placeholder={`Enter story sections as JSON: [{"title": "The Problem", "content": "..."}]`}
+                    {...form.register('storySections')}
+                    rows={3}
+                  />
+                </div>
+                {/* Stretch Goals */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Stretch Goals</label>
+                  <Textarea
+                    placeholder={`Enter stretch goals as JSON: [{"goal": "7 ETH", "description": "..."}]`}
+                    {...form.register('stretchGoals')}
+                    rows={2}
+                  />
+                </div>
+                {/* Timeline */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Timeline / Project Schedule</label>
+                  <Textarea
+                    placeholder={`Enter timeline as JSON: [{"milestone": "...", "date": "...", "description": "..."}]`}
+                    {...form.register('timeline')}
+                    rows={2}
+                  />
+                </div>
+                {/* Team */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2">Team / About</label>
+                  <Textarea
+                    placeholder={`Enter team as JSON: [{"name": "...", "role": "...", "bio": "...", "avatar": "..."}]`}
+                    {...form.register('team')}
+                    rows={2}
+                  />
+                </div>
+                <CustomFormField
+                  form={form}
+                  name="risks"
+                  labelText="Risks & Challenges"
+                  placeholder="Describe potential obstacles and contingency plans"
                 />
               </div>
               

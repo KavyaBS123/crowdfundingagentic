@@ -35,6 +35,13 @@ export interface IStorage {
   updateCampaignAmountCollected(id: number, amount: number): Promise<void>;
   updateCampaignVerificationStatus(id: number, verified: boolean): Promise<void>;
   
+  // Campaign features operations
+  addCampaignReward(campaignId: number, reward: any): Promise<void>;
+  addCampaignFAQ(campaignId: number, faq: any): Promise<void>;
+  addCampaignUpdate(campaignId: number, update: any): Promise<void>;
+  addCampaignComment(campaignId: number, comment: any): Promise<void>;
+  updateCampaignCommunity(campaignId: number, community: any): Promise<void>;
+  
   // Donation operations
   getDonations(campaignId: number): Promise<Donation[]>;
   createDonation(donation: InsertDonation): Promise<Donation>;
@@ -42,6 +49,11 @@ export interface IStorage {
   // GPT interactions
   getGptInteractions(userId: number): Promise<GptInteraction[]>;
   createGptInteraction(interaction: InsertGptInteraction): Promise<GptInteraction>;
+
+  // Saved campaigns operations
+  saveCampaign(userId: number, campaignId: number): Promise<void>;
+  unsaveCampaign(userId: number, campaignId: number): Promise<void>;
+  getSavedCampaigns(userId: number): Promise<number[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -49,6 +61,7 @@ export class MemStorage implements IStorage {
   private campaigns: Map<number, Campaign>;
   private donations: Map<number, Donation>;
   private gptInteractions: Map<number, GptInteraction>;
+  private savedCampaigns: Map<number, Set<number>>; // userId -> Set<campaignId>
   
   private currentUserId: number;
   private currentCampaignId: number;
@@ -60,6 +73,7 @@ export class MemStorage implements IStorage {
     this.campaigns = new Map();
     this.donations = new Map();
     this.gptInteractions = new Map();
+    this.savedCampaigns = new Map();
     
     this.currentUserId = 1;
     this.currentCampaignId = 1;
@@ -175,10 +189,14 @@ export class MemStorage implements IStorage {
           }
         }
       );
-      
-      const brightIdData = await brightIdResponse.json();
-      if (brightIdData.data && brightIdData.data.unique) {
-        creatorVerified = true;
+      const contentType = brightIdResponse.headers.get('content-type') || '';
+      if (brightIdResponse.ok && contentType.includes('application/json')) {
+        const brightIdData = await brightIdResponse.json();
+        if (brightIdData.data && brightIdData.data.unique) {
+          creatorVerified = true;
+        }
+      } else {
+        console.warn('BrightID verification: Non-JSON or error response, skipping verification.');
       }
     } catch (error) {
       console.error('Error checking BrightID verification:', error);
@@ -191,7 +209,15 @@ export class MemStorage implements IStorage {
       createdAt,
       requiresVerification: true,
       creatorVerified,
-      pId: insertCampaign.pId || null
+      pId: insertCampaign.pId || null,
+      metaDescription: insertCampaign.metaDescription || '',
+      videoUrl: insertCampaign.videoUrl || '',
+      videoThumbnail: insertCampaign.videoThumbnail || '',
+      storySections: insertCampaign.storySections || [],
+      stretchGoals: insertCampaign.stretchGoals || [],
+      timeline: insertCampaign.timeline || [],
+      team: insertCampaign.team || [],
+      risks: insertCampaign.risks || '',
     };
     
     this.campaigns.set(id, campaign);
@@ -229,6 +255,42 @@ export class MemStorage implements IStorage {
       ...campaign,
       creatorVerified: verified
     });
+  }
+  
+  // Campaign features operations
+  async addCampaignReward(campaignId: number, reward: any): Promise<void> {
+    const campaign = this.campaigns.get(campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+    campaign.rewards = [...(campaign.rewards || []), reward];
+    this.campaigns.set(campaignId, campaign);
+  }
+
+  async addCampaignFAQ(campaignId: number, faq: any): Promise<void> {
+    const campaign = this.campaigns.get(campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+    campaign.faqs = [...(campaign.faqs || []), faq];
+    this.campaigns.set(campaignId, campaign);
+  }
+
+  async addCampaignUpdate(campaignId: number, update: any): Promise<void> {
+    const campaign = this.campaigns.get(campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+    campaign.updates = [...(campaign.updates || []), update];
+    this.campaigns.set(campaignId, campaign);
+  }
+
+  async addCampaignComment(campaignId: number, comment: any): Promise<void> {
+    const campaign = this.campaigns.get(campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+    campaign.comments = [...(campaign.comments || []), comment];
+    this.campaigns.set(campaignId, campaign);
+  }
+
+  async updateCampaignCommunity(campaignId: number, community: any): Promise<void> {
+    const campaign = this.campaigns.get(campaignId);
+    if (!campaign) throw new Error("Campaign not found");
+    campaign.community = community;
+    this.campaigns.set(campaignId, campaign);
   }
   
   // Donation operations
@@ -297,6 +359,24 @@ export class MemStorage implements IStorage {
     
     this.gptInteractions.set(id, interaction);
     return interaction;
+  }
+
+  // Saved campaigns operations
+  async saveCampaign(userId: number, campaignId: number): Promise<void> {
+    if (!this.savedCampaigns.has(userId)) {
+      this.savedCampaigns.set(userId, new Set());
+    }
+    this.savedCampaigns.get(userId)!.add(campaignId);
+  }
+
+  async unsaveCampaign(userId: number, campaignId: number): Promise<void> {
+    if (this.savedCampaigns.has(userId)) {
+      this.savedCampaigns.get(userId)!.delete(campaignId);
+    }
+  }
+
+  async getSavedCampaigns(userId: number): Promise<number[]> {
+    return Array.from(this.savedCampaigns.get(userId) || []);
   }
 }
 

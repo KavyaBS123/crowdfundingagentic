@@ -3,6 +3,7 @@ import CountBox from '@/components/CountBox';
 import Loader from '@/components/Loader';
 import VerificationBadge from '@/components/VerificationBadge';
 import VerifyUserDialog from '@/components/VerifyUserDialog';
+import CampaignTabs from '@/components/CampaignTabs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -110,9 +111,46 @@ const CampaignDetails = () => {
     await fetchVerificationStatus(pId);
     
     toast({
+    
       title: 'Verification complete',
       description: 'Your campaign creator identity has been verified.',
     });
+  };
+
+  const refreshCampaignData = async () => {
+    try {
+      const backendCampaign = await apiRequest(`/api/campaigns/${pId}`, 'GET');
+      if (backendCampaign) {
+        const formattedCampaign: CampaignMetadata = {
+          pId: backendCampaign.id,
+          owner: backendCampaign.owner,
+          title: backendCampaign.title,
+          description: backendCampaign.description,
+          target: backendCampaign.target.toString(),
+          deadline: new Date(backendCampaign.deadline).toISOString(),
+          amountCollected: backendCampaign.amountCollected?.toString() || '0',
+          image: backendCampaign.image,
+          category: backendCampaign.category,
+          requiresVerification: backendCampaign.requiresVerification || false,
+          creatorVerified: backendCampaign.creatorVerified || false,
+          verificationMethod: backendCampaign.verificationMethod || null,
+          rewards: Array.isArray(backendCampaign.rewards) ? backendCampaign.rewards : (backendCampaign.rewards ? JSON.parse(backendCampaign.rewards) : []),
+          storySections: Array.isArray(backendCampaign.storySections) ? backendCampaign.storySections : (backendCampaign.storySections ? JSON.parse(backendCampaign.storySections) : []),
+          stretchGoals: Array.isArray(backendCampaign.stretchGoals) ? backendCampaign.stretchGoals : (backendCampaign.stretchGoals ? JSON.parse(backendCampaign.stretchGoals) : []),
+          timeline: Array.isArray(backendCampaign.timeline) ? backendCampaign.timeline : (backendCampaign.timeline ? JSON.parse(backendCampaign.timeline) : []),
+          team: Array.isArray(backendCampaign.team) ? backendCampaign.team : (backendCampaign.team ? JSON.parse(backendCampaign.team) : []),
+          faq: Array.isArray(backendCampaign.faq) ? backendCampaign.faq : (backendCampaign.faq ? JSON.parse(backendCampaign.faq) : []),
+          updates: Array.isArray(backendCampaign.updates) ? backendCampaign.updates : (backendCampaign.updates ? JSON.parse(backendCampaign.updates) : []),
+          comments: Array.isArray(backendCampaign.comments) ? backendCampaign.comments : (backendCampaign.comments ? JSON.parse(backendCampaign.comments) : []),
+          community: typeof backendCampaign.community === 'object' ? backendCampaign.community : (backendCampaign.community ? JSON.parse(backendCampaign.community) : { backers: 0, discussions: 0 }),
+          donators: [],
+          donations: []
+        };
+        setCampaign(formattedCampaign);
+      }
+    } catch (error) {
+      console.error('Error refreshing campaign data:', error);
+    }
   };
 
   useEffect(() => {
@@ -140,6 +178,15 @@ const CampaignDetails = () => {
               requiresVerification: backendCampaign.requiresVerification || false,
               creatorVerified: backendCampaign.creatorVerified || false,
               verificationMethod: backendCampaign.verificationMethod || null,
+              rewards: Array.isArray(backendCampaign.rewards) ? backendCampaign.rewards : (backendCampaign.rewards ? JSON.parse(backendCampaign.rewards) : []),
+              storySections: Array.isArray(backendCampaign.storySections) ? backendCampaign.storySections : (backendCampaign.storySections ? JSON.parse(backendCampaign.storySections) : []),
+              stretchGoals: Array.isArray(backendCampaign.stretchGoals) ? backendCampaign.stretchGoals : (backendCampaign.stretchGoals ? JSON.parse(backendCampaign.stretchGoals) : []),
+              timeline: Array.isArray(backendCampaign.timeline) ? backendCampaign.timeline : (backendCampaign.timeline ? JSON.parse(backendCampaign.timeline) : []),
+              team: Array.isArray(backendCampaign.team) ? backendCampaign.team : (backendCampaign.team ? JSON.parse(backendCampaign.team) : []),
+              faq: Array.isArray(backendCampaign.faq) ? backendCampaign.faq : (backendCampaign.faq ? JSON.parse(backendCampaign.faq) : []),
+              updates: Array.isArray(backendCampaign.updates) ? backendCampaign.updates : (backendCampaign.updates ? JSON.parse(backendCampaign.updates) : []),
+              comments: Array.isArray(backendCampaign.comments) ? backendCampaign.comments : (backendCampaign.comments ? JSON.parse(backendCampaign.comments) : []),
+              community: typeof backendCampaign.community === 'object' ? backendCampaign.community : (backendCampaign.community ? JSON.parse(backendCampaign.community) : { backers: 0, discussions: 0 }),
               donators: [],
               donations: []
             };
@@ -153,6 +200,7 @@ const CampaignDetails = () => {
               verificationMethod: backendCampaign.verificationMethod || null
             });
             
+        
             // Try to fetch donation data if available
             try {
               const donationsData = await apiRequest(`/api/donations/${pId}`, 'GET');
@@ -322,10 +370,12 @@ const CampaignDetails = () => {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
           <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-campaign mb-8">
+            {/* Always show image, never video */}
             <img 
               src={campaign.image} 
               alt={campaign.title} 
               className="w-full h-64 md:h-96 object-cover"
+              onError={e => { e.currentTarget.src = '/default-campaign-poster.jpg'; }}
             />
             
             <div className="p-6">
@@ -342,25 +392,105 @@ const CampaignDetails = () => {
                 </div>
               </div>
               
-              <h1 className="text-2xl md:text-3xl font-bold mb-4">{campaign.title}</h1>
+              <h1 className="text-2xl md:text-3xl font-bold mb-2">{campaign.title}</h1>
+              {campaign.metaDescription && (
+                <p className="text-gray-500 dark:text-gray-400 text-base mb-4">{campaign.metaDescription}</p>
+              )}
               
-              <div className="mb-6">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium">Progress</span>
-                  <span>{Math.min(100, Math.round((parseFloat(campaign.amountCollected) / parseFloat(campaign.target)) * 100))}%</span>
-                </div>
-                <div className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary" 
-                    style={{ width: `${Math.min(100, Math.round((parseFloat(campaign.amountCollected) / parseFloat(campaign.target)) * 100))}%` }}
-                  ></div>
-                </div>
+              {/* Introductory Summary / Meta Description */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Introductory Summary</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-base">
+                  {campaign.metaDescription || 'This is some example information about this campaign summary.'}
+                </p>
               </div>
-              
-              <div className="grid grid-cols-3 gap-4 mb-8">
-                <CountBox title="Days Left" value={calculateDaysLeft(campaign.deadline)} />
-                <CountBox title="Raised" value={`${parseFloat(campaign.amountCollected).toFixed(2)} ETH`} />
-                <CountBox title="Backers" value={donators.length} />
+
+              {/* Project Story / Description */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Project Story</h2>
+                {campaign.storySections && campaign.storySections.length > 0 ? (
+                  campaign.storySections.map((section, idx) => (
+                    <div key={idx} className="mb-4">
+                      <h3 className="font-semibold mb-1">{section.title}</h3>
+                      <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">{section.content}</p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">This is some example information about the project story and description.</p>
+                )}
+              </div>
+
+              {/* Rewards / Perks Section */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Rewards / Perks</h2>
+                {campaign.rewards && campaign.rewards.length > 0 ? (
+                  <ul className="list-disc pl-6">
+                    {campaign.rewards.map((reward, idx) => (
+                      <li key={idx} className="mb-2">
+                        <span className="font-semibold">{reward.title}:</span> {reward.description} {reward.minimumAmount && (<span className="text-primary">(Min: {reward.minimumAmount} ETH)</span>)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300">This is some example information about the rewards and perks for this campaign.</p>
+                )}
+              </div>
+
+              {/* Stretch Goals / Add‑Ons */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Stretch Goals / Add‑Ons</h2>
+                {campaign.stretchGoals && campaign.stretchGoals.length > 0 ? (
+                  <ul className="list-disc pl-6">
+                    {campaign.stretchGoals.map((goal, idx) => (
+                      <li key={idx} className="mb-2"><span className="font-semibold">{goal.goal}:</span> {goal.description}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300">This is some example information about the stretch goals and add-ons for this campaign.</p>
+                )}
+              </div>
+
+              {/* Timeline or Project Schedule */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Timeline / Project Schedule</h2>
+                {campaign.timeline && campaign.timeline.length > 0 ? (
+                  <ul className="list-none">
+                    {campaign.timeline.map((item, idx) => (
+                      <li key={idx} className="mb-2">
+                        <span className="font-semibold">{item.milestone}</span> ({item.date}): {item.description}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300">This is some example information about the timeline and project schedule.</p>
+                )}
+              </div>
+
+              {/* Team / About Section */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Team / About</h2>
+                {campaign.team && campaign.team.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {campaign.team.map((member, idx) => (
+                      <div key={idx} className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        {member.avatar && <img src={member.avatar} alt={member.name} className="w-12 h-12 rounded-full object-cover" />}
+                        <div>
+                          <h3 className="font-semibold">{member.name}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{member.role}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-300">{member.bio}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 dark:text-gray-300">This is some example information about the team and people behind this campaign.</p>
+                )}
+              </div>
+
+              {/* Risks & Challenges */}
+              <div className="mb-8">
+                <h2 className="text-xl font-bold mb-2">Risks & Challenges</h2>
+                <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">{campaign.risks || 'This is some example information about the risks and challenges for this campaign.'}</p>
               </div>
               
               <div className="mb-8">
@@ -397,12 +527,12 @@ const CampaignDetails = () => {
                 </div>
               </div>
               
-              <div className="mb-8">
+              {/* <div className="mb-8">
                 <h2 className="text-xl font-bold mb-4">Story</h2>
                 <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
                   {campaign.description}
                 </p>
-              </div>
+              </div> */}
               
               <div>
                 <h2 className="text-xl font-bold mb-4">Donators</h2>
@@ -423,13 +553,19 @@ const CampaignDetails = () => {
           </div>
         </div>
         
+        {/* Campaign Tabs */}
+        <div className="md:col-span-2 mb-8">
+          <CampaignTabs campaign={campaign} onUpdate={refreshCampaignData} />
+        </div>
+        
+        {/* Donation Sidebar */}
         <div className="md:col-span-1">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-campaign sticky top-20">
             <h2 className="text-xl font-bold mb-4">Fund the Campaign</h2>
             
             <div className="mb-6">
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                Support this campaign by donating ETH. Your contribution makes a difference!
+                Support this image.pngcampaign by donating ETH. Your contribution makes a difference!
               </p>
               
               <div className="mb-4">

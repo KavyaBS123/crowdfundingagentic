@@ -17,6 +17,14 @@ export const campaigns = pgTable("campaigns", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  metaDescription: text("meta_description"),
+  videoUrl: text("video_url"),
+  videoThumbnail: text("video_thumbnail"),
+  storySections: text("story_sections", { mode: "json" }),
+  stretchGoals: text("stretch_goals", { mode: "json" }),
+  timeline: text("timeline", { mode: "json" }),
+  team: text("team", { mode: "json" }),
+  risks: text("risks"),
   owner: text("owner").notNull(),
   target: numeric("target").notNull(),
   deadline: timestamp("deadline").notNull(),
@@ -26,7 +34,12 @@ export const campaigns = pgTable("campaigns", {
   pId: integer("pid"), // Campaign ID from blockchain
   createdAt: timestamp("created_at").defaultNow().notNull(),
   requiresVerification: boolean("requires_verification").default(true).notNull(),
-  creatorVerified: boolean("creator_verified").default(false)
+  creatorVerified: boolean("creator_verified").default(false),
+  rewards: text("rewards", { mode: "json" }),
+  faq: text("faq", { mode: "json" }),
+  updates: text("updates", { mode: "json" }),
+  comments: text("comments", { mode: "json" }),
+  community: text("community", { mode: "json" })
 });
 
 export const donations = pgTable("donations", {
@@ -43,6 +56,13 @@ export const gptInteractions = pgTable("gpt_interactions", {
   promptText: text("prompt_text").notNull(),
   responseText: text("response_text").notNull(),
   timestamp: timestamp("timestamp").defaultNow().notNull()
+});
+
+export const savedCampaigns = pgTable("saved_campaigns", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  campaignId: integer("campaign_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
 });
 
 // Insert schemas
